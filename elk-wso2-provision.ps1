@@ -1,5 +1,5 @@
 $ELK_VERSION = "6.5.4"
-$ELK_ENV = "c:\tools2"
+$ELK_ENV = "c:\tools"
 
 
 # Download ELK stack
@@ -101,25 +101,37 @@ processors:
 [System.IO.File]::WriteAllText("$ELK_ENV\filebeat-$ELK_VERSION-windows-x86_64\filebeat-main.yml", $filebeat_config)
 
 
-# Create shortcuts for ELK stack
+# Install GO language using chocolatey
+choco install golang -y
+refreshenv
+
+
+# Install forego for running all applications
+go get -u github.com/ddollar/forego
+
+
+# Create forego configuration file
+$procfile = @"
+elasticsearch: "$ELK_ENV\elasticsearch-$ELK_VERSION\bin\elasticsearch.bat"
+kibana: "$ELK_ENV\kibana-$ELK_VERSION-windows-x86_64\bin\kibana.bat"
+logstash: "$ELK_ENV\logstash-$ELK_VERSION\bin\logstash.bat" -f  "$ELK_ENV\logstash-$ELK_VERSION\config\logstash-main.conf"
+filebeat: "$ELK_ENV\filebeat-$ELK_VERSION-windows-x86_64\filebeat.exe" -c "$ELK_ENV\filebeat-$ELK_VERSION-windows-x86_64\filebeat-main.yml"
+"@
+[System.IO.File]::WriteAllText("$ELK_ENV\procfile", $procfile)
+
+
+# Create forego launcher and shortcut
+$wso2_analyzer = @"
+forego start -f "$ELK_ENV\procfile"
+"@
+[System.IO.File]::WriteAllText("$ELK_ENV\wso2_analyzer.bat", $wso2_analyzer)
 $WshShell = New-Object -ComObject WScript.Shell
-$Shortcut = $WshShell.CreateShortcut("$Home\Desktop\Elasticsearch.lnk")
-$Shortcut.TargetPath = "$ELK_ENV\elasticsearch-$ELK_VERSION\bin\elasticsearch.bat"
+$Shortcut = $WshShell.CreateShortcut("$Home\Desktop\wso2_analyzer.lnk")
+$Shortcut.TargetPath = "$ELK_ENV\wso2_analyzer.bat"
 $Shortcut.Save()
 
+# Create shortcut to logs folder
 $WshShell = New-Object -ComObject WScript.Shell
-$Shortcut = $WshShell.CreateShortcut("$Home\Desktop\Kibana.lnk")
-$Shortcut.TargetPath = "$ELK_ENV\kibana-$ELK_VERSION-windows-x86_64\bin\kibana.bat"
-$Shortcut.Save()
-
-$WshShell = New-Object -ComObject WScript.Shell
-$Shortcut = $WshShell.CreateShortcut("$Home\Desktop\Logstash.lnk")
-$Shortcut.TargetPath = "$ELK_ENV\logstash-$ELK_VERSION\bin\logstash.bat"
-$Shortcut.Arguments = " -f $ELK_ENV\logstash-$ELK_VERSION\config\logstash-main.conf"
-$Shortcut.Save()
-
-$WshShell = New-Object -ComObject WScript.Shell
-$Shortcut = $WshShell.CreateShortcut("$Home\Desktop\Filebeat.lnk")
-$Shortcut.TargetPath = "$ELK_ENV\filebeat-$ELK_VERSION-windows-x86_64\filebeat.exe"
-$Shortcut.Arguments = " -c $ELK_ENV\filebeat-$ELK_VERSION-windows-x86_64\filebeat-main.yml"
+$Shortcut = $WshShell.CreateShortcut("$Home\Desktop\logs.lnk")
+$Shortcut.TargetPath = "$ELK_ENV\logs\"
 $Shortcut.Save()
